@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # --- Backend Spring Boot ---
+  quest-boot:
+    build: ../quest-boot
+    container_name: quest-boot
+    ports:
+      - "8080:8080"
+    depends_on:
+      quest-mysql:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://quest-mysql:3306/quest?useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    networks:
+      - devops
+
+  # --- Frontend Angular ---
+  quest-angular:
+    build: ../quest-angular 
+    container_name: quest-angular
+    ports:
+      - "4200:80"
+    depends_on:
+      - quest-boot
+    networks:
+      - devops
+
+  # --- Base de données ---
+  quest-mysql:
+    image: mysql:8.0
+    container_name: quest-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: quest
+    volumes:
+      - ./quest-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - devops
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # --- SonarQube ---
+  sonar:
+    image: sonarqube:community
+    container_name: sonar
+    ports:
+      - "9000:9000"
+    networks:
+      - devops
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+
+  # --- Jenkins (TP 2) ---
+  jenkins:
+    # MODIFICATION ICI : On utilise l'image construite manuellement
+    image: jenkins-custom
+    # build: ./jenkins-custom  <-- Désactivé pour ne pas surcharger Docker
+    
+    container_name: jenkins
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    networks:
+      - devops
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins_home:/var/jenkins_home
+
+networks:
+  devops:
+    driver: bridge
+
+volumes:
+  jenkins_home:
