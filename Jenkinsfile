@@ -2,11 +2,13 @@ pipeline {
     agent any
 
     stages {
-        stage('Build & Deploy') {
+        stage('Déploiement Angular') {
             steps {
                 script {
-                    echo ' Démarrage du déploiement...'
-                    
+                    echo '🚀 Mise à jour du conteneur Angular...'
+                    // --build : force la reconstruction de l'image
+                    // --no-deps : ne redémarre pas mysql ou java, juste angular
+                    // quest-angular : le nom du service dans le fichier yaml
                     sh 'docker compose up -d --build --no-deps quest-angular'
                 }
             }
